@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="menu_right_padding" format="dimension" />
+    <attr name="sliding_mode" format="enum">
+        <enum name="normal" value="0" />
+        <enum name="drawer" value="1" />
+        <enum name="qq" value="2" />
+    </attr>
+
+    <declare-styleable name="MySlidingMenu">
+        <attr name="menu_right_padding" />
+        <attr name="sliding_mode" />
+    </declare-styleable>
+</resources>
