@@ -8,6 +8,7 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.HorizontalScrollView;
@@ -19,8 +20,10 @@ import android.widget.LinearLayout;
  */
 public class MySlidingMenu extends HorizontalScrollView {
 
+    public final static int MIN_VELOCITY = 500;
+
     // 三种侧滑菜单模式，依次是 普通、抽屉式、仿QQ
-    public final static int NORMOAL = 0;
+    public final static int NORMAL = 0;
     public final static int DRAWER = 1;
     public final static int QQ = 2;
 
@@ -29,6 +32,9 @@ public class MySlidingMenu extends HorizontalScrollView {
     private int mScreenWidth;
     private int mMenuRightPadding;
     private int slidingMode;
+
+    // 速度监控器
+    private VelocityTracker mVelocityTracker;
 
     public MySlidingMenu(Context context) {
         this(context, null);
@@ -45,7 +51,7 @@ public class MySlidingMenu extends HorizontalScrollView {
         DisplayMetrics dm = new DisplayMetrics();
         wm.getDefaultDisplay().getMetrics(dm);
         mScreenWidth = dm.widthPixels;
-
+        // 获取xml定义的属性（如果存在的话）
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.MySlidingMenu);
         for (int i = 0; i < a.getIndexCount(); i++) {
             int attr = a.getIndex(i);
@@ -56,7 +62,8 @@ public class MySlidingMenu extends HorizontalScrollView {
                             (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50, context.getResources().getDisplayMetrics()));
                     break;
                 case R.styleable.MySlidingMenu_sliding_mode:
-                    slidingMode = a.getInteger(attr, 0);
+                    // 获取侧滑模式，默认是普通侧滑模式
+                    slidingMode = a.getInteger(attr, NORMAL);
                     break;
             }
         }
@@ -86,40 +93,90 @@ public class MySlidingMenu extends HorizontalScrollView {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
+        createVelocityTracker(ev);
         switch (ev.getAction()) {
             case MotionEvent.ACTION_UP:
-                if (getScrollX() >= leftMenu.getLayoutParams().width / 2) {
-                    smoothScrollTo(leftMenu.getLayoutParams().width, 0);
-                } else {
-                    smoothScrollTo(0, 0);
-                }
+                calScrollTo(getScrollVelocity());
+                recycleVelocityTracker();
                 return true;
         }
         return super.onTouchEvent(ev);
     }
 
+    /**
+     * 计算当前视图滑动方向
+     *
+     * @param velocityX 当前手指横向移动速度
+     */
+    public void calScrollTo(int velocityX) {
+        if (getScrollX() >= leftMenu.getLayoutParams().width / 2) {
+            if (velocityX > MIN_VELOCITY) {
+                smoothScrollTo(0, 0);
+            } else {
+                smoothScrollTo(leftMenu.getLayoutParams().width, 0);
+            }
+        } else {
+            if (velocityX < -MIN_VELOCITY) {
+                smoothScrollTo(leftMenu.getLayoutParams().width, 0);
+            } else {
+                smoothScrollTo(0, 0);
+            }
+        }
+    }
+
+    /**
+     * 视图滑动时触发此方法
+     *
+     * @param l    视图水平偏移量
+     * @param t    视图垂直偏移量
+     * @param oldl 原始视图左上角水平坐标
+     * @param oldt 原始视图坐上小垂直坐标
+     */
     @Override
     protected void onScrollChanged(int l, int t, int oldl, int oldt) {
-        super.onScrollChanged(l, t, oldl, oldt);
-        if (slidingMode == NORMOAL) {
-            return;
-        } else if (slidingMode == DRAWER) {
-            ObjectAnimator menuTranlationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", l);
-            menuTranlationAnimator.setDuration(0);
-            menuTranlationAnimator.start();
-            return;
+        switch (slidingMode) {
+            case NORMAL:
+                break;
+            case DRAWER:
+                drawerAnimator(l);
+                break;
+            case QQ:
+                QQAnimator(l);
+                break;
+            default:
+                break;
         }
-        float scale = l * 1.0f / leftMenu.getWidth();
+    }
+
+    /**
+     * 抽屉动画
+     *
+     * @param offsetX 视图滑动偏移量
+     */
+
+    public void drawerAnimator(int offsetX) {
+        ObjectAnimator menuTranlationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", offsetX);
+        menuTranlationAnimator.setDuration(0);
+        menuTranlationAnimator.start();
+    }
+
+    /**
+     * 仿QQ侧滑动画
+     *
+     * @param offsetX 视图滑动偏移量
+     */
+    public void QQAnimator(int offsetX) {
+        float scale = offsetX * 1.0f / leftMenu.getWidth();
         // 菜单动画
         ObjectAnimator leftMenuScaleAnimatorX = ObjectAnimator.ofFloat(leftMenu, "scaleX", 1f, 0.7f + 0.3f * (1 - scale));
         ObjectAnimator leftMenuScaleAnimatorY = ObjectAnimator.ofFloat(leftMenu, "scaleY", 1f, 0.7f + 0.3f * (1 - scale));
         ObjectAnimator menuAlphaAnimator = ObjectAnimator.ofFloat(leftMenu, "alpha", leftMenu.getAlpha(), 0.7f + 0.3f * (1 - scale));
         leftMenu.setPivotX(0);
         leftMenu.setPivotY(leftMenu.getHeight() / 2);
-        ObjectAnimator menuTranlationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", (int) ((0.3 * scale + 0.7) * l));
+        ObjectAnimator menuTranslationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", (int) ((0.3 * scale + 0.7) * offsetX));
         AnimatorSet menuSet = new AnimatorSet();
         menuSet.setDuration(0);
-        menuSet.play(leftMenuScaleAnimatorY).with(menuAlphaAnimator).with(menuTranlationAnimator).with(leftMenuScaleAnimatorX);
+        menuSet.play(menuAlphaAnimator).with(leftMenuScaleAnimatorY).with(menuTranslationAnimator).with(leftMenuScaleAnimatorX);
         menuSet.start();
         // 内容动画
         ObjectAnimator contentScaleAnimatorY = ObjectAnimator.ofFloat(rightContent, "scaleY", 1f, 0.7f + 0.3f * scale);
@@ -131,4 +188,36 @@ public class MySlidingMenu extends HorizontalScrollView {
         contentSet.setDuration(0);
         contentSet.start();
     }
+
+
+    /**
+     * 初始化VelocityTracker对象，并将触摸滑动事件加入到VelocityTracker当中
+     *
+     * @param event 触摸滑动事件
+     */
+    private void createVelocityTracker(MotionEvent event) {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        }
+        mVelocityTracker.addMovement(event);
+    }
+
+    /**
+     * 获取手指在content界面滑动的速度
+     *
+     * @return 滑动速度，以每秒钟移动了多少像素值为单位
+     */
+    private int getScrollVelocity() {
+        mVelocityTracker.computeCurrentVelocity(1000);
+        return (int) mVelocityTracker.getXVelocity();
+    }
+
+    /**
+     * 回收VelocityTracker对象。
+     */
+    private void recycleVelocityTracker() {
+        mVelocityTracker.recycle();
+        mVelocityTracker = null;
+    }
+
 }
