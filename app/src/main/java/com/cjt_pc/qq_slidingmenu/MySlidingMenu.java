@@ -70,24 +70,37 @@ public class MySlidingMenu extends HorizontalScrollView {
         a.recycle();
     }
 
+    /**
+     * 重写onMeasure方法，自定义测量控件大小（不必调用super.onMeasure()，方法末尾须调用setMeasuredDimension()方法）
+     *
+     * @param widthMeasureSpec 建议宽度信息封装类
+     * @param heightMeasureSpec 建议高度信息封装类
+     */
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
         if (!once) {
             LinearLayout mSlidingLayout = (LinearLayout) getChildAt(0);
             leftMenu = (ViewGroup) mSlidingLayout.getChildAt(0);
             rightContent = (ViewGroup) mSlidingLayout.getChildAt(1);
-            leftMenu.getLayoutParams().width = mScreenWidth - mMenuRightPadding;
-            rightContent.getLayoutParams().width = mScreenWidth;
+            // 计算左菜单的宽度
+            int leftMemuWidth = mScreenWidth - mMenuRightPadding;
+            // 首先测量mSlidingLayout的宽度，然后再测量其子View的宽度，避免对子View自身的测量造成影响
+            mSlidingLayout.measure(MeasureSpec.makeMeasureSpec(widthSize + leftMemuWidth, MeasureSpec.EXACTLY),
+                    heightMeasureSpec);
+            rightContent.measure(widthMeasureSpec, heightMeasureSpec);
+            leftMenu.measure(MeasureSpec.makeMeasureSpec(leftMemuWidth, MeasureSpec.EXACTLY),
+                    heightMeasureSpec);
             once = true;
         }
+        setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         if (changed) {
-            scrollTo(leftMenu.getLayoutParams().width, 0);
+            scrollTo(leftMenu.getWidth(), 0);
         }
     }
 
@@ -109,15 +122,15 @@ public class MySlidingMenu extends HorizontalScrollView {
      * @param velocityX 当前手指横向移动速度
      */
     public void calScrollTo(int velocityX) {
-        if (getScrollX() >= leftMenu.getLayoutParams().width / 2) {
+        if (getScrollX() >= leftMenu.getWidth() / 2) {
             if (velocityX > MIN_VELOCITY) {
                 smoothScrollTo(0, 0);
             } else {
-                smoothScrollTo(leftMenu.getLayoutParams().width, 0);
+                smoothScrollTo(leftMenu.getWidth(), 0);
             }
         } else {
             if (velocityX < -MIN_VELOCITY) {
-                smoothScrollTo(leftMenu.getLayoutParams().width, 0);
+                smoothScrollTo(leftMenu.getWidth(), 0);
             } else {
                 smoothScrollTo(0, 0);
             }
