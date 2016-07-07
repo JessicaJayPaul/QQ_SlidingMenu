@@ -1,7 +1,5 @@
 package com.cjt_pc.qq_slidingmenu;
 
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
@@ -100,6 +98,7 @@ public class MySlidingMenu extends HorizontalScrollView {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         if (changed) {
+            setAnmateViewPivot();
             scrollTo(leftMenu.getWidth(), 0);
         }
     }
@@ -164,44 +163,36 @@ public class MySlidingMenu extends HorizontalScrollView {
     /**
      * 抽屉动画
      *
-     * @param offsetX 视图滑动偏移量
+     * @param offsetX 视图水平偏移量
      */
-
-    public void drawerAnimator(int offsetX) {
-        ObjectAnimator menuTranlationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", offsetX);
-        menuTranlationAnimator.setDuration(0);
-        menuTranlationAnimator.start();
+    public void drawerAnimator(int offsetX){
+        leftMenu.animate().translationX(offsetX).setDuration(0).start();
     }
 
     /**
      * 仿QQ侧滑动画
      *
-     * @param offsetX 视图滑动偏移量
+     * @param offsetX 视图水平偏移量
      */
     public void QQAnimator(int offsetX) {
         float scale = offsetX * 1.0f / leftMenu.getWidth();
         // 菜单动画
-        ObjectAnimator leftMenuScaleAnimatorX = ObjectAnimator.ofFloat(leftMenu, "scaleX", 1f, 0.7f + 0.3f * (1 - scale));
-        ObjectAnimator leftMenuScaleAnimatorY = ObjectAnimator.ofFloat(leftMenu, "scaleY", 1f, 0.7f + 0.3f * (1 - scale));
-        ObjectAnimator menuAlphaAnimator = ObjectAnimator.ofFloat(leftMenu, "alpha", leftMenu.getAlpha(), 0.7f + 0.3f * (1 - scale));
-        leftMenu.setPivotX(0);
-        leftMenu.setPivotY(leftMenu.getHeight() / 2);
-        ObjectAnimator menuTranslationAnimator = ObjectAnimator.ofFloat(leftMenu, "translationX", (int) ((0.3 * scale + 0.7) * offsetX));
-        AnimatorSet menuSet = new AnimatorSet();
-        menuSet.setDuration(0);
-        menuSet.play(menuAlphaAnimator).with(leftMenuScaleAnimatorY).with(menuTranslationAnimator).with(leftMenuScaleAnimatorX);
-        menuSet.start();
+        float menuDegree = 0.7f + 0.3f * (1 - scale);
+        leftMenu.animate().scaleX(menuDegree).scaleY(menuDegree).alpha(menuDegree).setDuration(0).start();
         // 内容动画
-        ObjectAnimator contentScaleAnimatorY = ObjectAnimator.ofFloat(rightContent, "scaleY", 1f, 0.7f + 0.3f * scale);
-        ObjectAnimator contentScaleAnimatorX = ObjectAnimator.ofFloat(rightContent, "scaleX", 1f, 0.7f + 0.3f * scale);
-        rightContent.setPivotX(0);
-        rightContent.setPivotY(rightContent.getHeight() / 2);
-        AnimatorSet contentSet = new AnimatorSet();
-        contentSet.play(contentScaleAnimatorY).with(contentScaleAnimatorX);
-        contentSet.setDuration(0);
-        contentSet.start();
+        float contentDegree = 0.7f + 0.3f * scale;
+        rightContent.animate().scaleX(contentDegree).scaleY(contentDegree).setDuration(0).start();
     }
 
+    /**
+     * 设置需要缩放动画的缩放中心点
+     */
+    public void setAnmateViewPivot(){
+        leftMenu.setPivotX(leftMenu.getWidth());
+        leftMenu.setPivotY(leftMenu.getHeight() / 2);
+        rightContent.setPivotX(0);
+        rightContent.setPivotY(rightContent.getHeight() / 2);
+    }
 
     /**
      * 初始化VelocityTracker对象，并将触摸滑动事件加入到VelocityTracker当中
