@@ -3,12 +3,9 @@ package com.cjt_pc.qq_slidingmenu;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
-import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 
@@ -18,6 +15,9 @@ import android.widget.LinearLayout;
  */
 public class MySlidingMenu extends HorizontalScrollView {
 
+    /**
+     * 最低触发菜单动画效果水平速率
+     */
     public final static int MIN_VELOCITY = 500;
 
     // 三种侧滑菜单模式，依次是 普通、抽屉式、仿QQ
@@ -25,10 +25,23 @@ public class MySlidingMenu extends HorizontalScrollView {
     public final static int DRAWER = 1;
     public final static int QQ = 2;
 
+    /**
+     * 菜单透明度的最低程度，默认值是0.7
+     */
+    private float minAlpha = 0.7f;
+
+    /**
+     * 菜单布局占父布局的百分比，默认值是0.8
+     */
+    private float menuWidthRate = 0.8f;
+
+    /**
+     * 仿QQ菜单缩放视图比例，默认值是0.7
+     */
+    private float scaleRate = 0.7f;
+
     private ViewGroup leftMenu, rightContent;
     private boolean once = false;
-    private int mScreenWidth;
-    private int mMenuRightPadding;
     private int slidingMode;
 
     // 速度监控器
@@ -44,24 +57,23 @@ public class MySlidingMenu extends HorizontalScrollView {
 
     public MySlidingMenu(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        WindowManager wm = (WindowManager) getContext()
-                .getSystemService(Context.WINDOW_SERVICE);
-        DisplayMetrics dm = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(dm);
-        mScreenWidth = dm.widthPixels;
         // 获取xml定义的属性（如果存在的话）
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.MySlidingMenu);
         for (int i = 0; i < a.getIndexCount(); i++) {
             int attr = a.getIndex(i);
             switch (attr) {
-                case R.styleable.MySlidingMenu_menu_right_padding:
-                    // 获取菜单right_padding，默认为50dp
-                    mMenuRightPadding = a.getDimensionPixelSize(attr,
-                            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50, context.getResources().getDisplayMetrics()));
+                case R.styleable.MySlidingMenu_menu_width_rate:
+                    menuWidthRate = a.getFloat(attr, menuWidthRate);
                     break;
                 case R.styleable.MySlidingMenu_sliding_mode:
                     // 获取侧滑模式，默认是普通侧滑模式
                     slidingMode = a.getInteger(attr, NORMAL);
+                    break;
+                case R.styleable.MySlidingMenu_menu_alpha:
+                    minAlpha = a.getFloat(attr, minAlpha);
+                    break;
+                case R.styleable.MySlidingMenu_scale_rate:
+                    scaleRate = a.getFloat(attr, scaleRate);
                     break;
             }
         }
@@ -82,7 +94,7 @@ public class MySlidingMenu extends HorizontalScrollView {
             leftMenu = (ViewGroup) mSlidingLayout.getChildAt(0);
             rightContent = (ViewGroup) mSlidingLayout.getChildAt(1);
             // 计算左菜单的宽度
-            int leftMemuWidth = mScreenWidth - mMenuRightPadding;
+            int leftMemuWidth = (int) (widthSize * menuWidthRate);
             // 首先测量mSlidingLayout的宽度，然后再测量其子View的宽度，避免对子View自身的测量造成影响
             mSlidingLayout.measure(MeasureSpec.makeMeasureSpec(widthSize + leftMemuWidth, MeasureSpec.EXACTLY),
                     heightMeasureSpec);
@@ -175,12 +187,13 @@ public class MySlidingMenu extends HorizontalScrollView {
      * @param offsetX 视图水平偏移量
      */
     public void QQAnimator(int offsetX) {
-        float scale = offsetX * 1.0f / leftMenu.getWidth();
+        float offRate = offsetX * 1.0f / leftMenu.getWidth();
         // 菜单动画
-        float menuDegree = 0.7f + 0.3f * (1 - scale);
-        leftMenu.animate().scaleX(menuDegree).scaleY(menuDegree).alpha(menuDegree).setDuration(0).start();
+        float menuDegree = scaleRate + (1 - scaleRate) * (1 - offRate);
+        float alphaDegree = minAlpha + (1 - minAlpha) * (1 - offRate);
+        leftMenu.animate().scaleX(menuDegree).scaleY(menuDegree).alpha(alphaDegree).setDuration(0).start();
         // 内容动画
-        float contentDegree = 0.7f + 0.3f * scale;
+        float contentDegree = scaleRate + (1 - scaleRate) * offRate;
         rightContent.animate().scaleX(contentDegree).scaleY(contentDegree).setDuration(0).start();
     }
 
