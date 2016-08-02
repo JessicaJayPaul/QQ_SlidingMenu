@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:menu="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+                xmlns:menu="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
     <com.cjt_pc.qq_slidingmenu.MySlidingMenu
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/colorPrimaryDark"
-        menu:menu_right_padding="80dp"
+        menu:menu_width_rate="0.7"
+        menu:scale_rate="0.9"
         menu:sliding_mode="qq">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal">
 
@@ -26,21 +27,27 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="menu"
-                    android:textSize="30sp" />
+                    android:textSize="30sp"/>
             </LinearLayout>
 
-            <LinearLayout
+            <com.cjt_pc.qq_slidingmenu.MyLinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/colorAccent">
+                android:background="@color/colorAccent"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="content"
-                    android:textSize="30sp" />
-            </LinearLayout>
+                    android:text="内容"
+                    android:textSize="24sp"/>
+
+                <ListView
+                    android:id="@+id/list_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+            </com.cjt_pc.qq_slidingmenu.MyLinearLayout>
         </LinearLayout>
     </com.cjt_pc.qq_slidingmenu.MySlidingMenu>
 </RelativeLayout>
